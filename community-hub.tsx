@@ -584,7 +584,17 @@ export default function CommunityHub() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Add function to handle file selection
+  // Add this state for post dropdown menu
+  const [activeDropdownPostId, setActiveDropdownPostId] = useState<
+    string | null
+  >(null);
+
+  // Add this state to track followed users in the home page
+  const [followedUsers, setFollowedUsers] = useState<{
+    [key: string]: boolean;
+  }>({});
+
+  // Add a function to handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setAvatarFile(e.target.files[0]);
@@ -901,6 +911,32 @@ export default function CommunityHub() {
   //   // For demo purposes, we'll just update the state
   // }
 
+  // Add a function to handle post deletion
+  const handleDeletePost = (postId: string) => {
+    setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+    setActiveDropdownPostId(null);
+  };
+
+  // Add a function to handle following a user
+  const handleFollowUser = (userId: string) => {
+    // In a real app, you would update the user's following status
+    // For now, we'll just show an alert
+    //alert(`You are now following ${getUserById(userId).name}`);
+  };
+
+  // Add this function to handle follow toggle for People You May Know section
+  const handleToggleFollow = (userId: string) => {
+    setFollowedUsers((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+
+    // Show follow notification only when following, not unfollowing
+    // if (!followedUsers[userId]) {
+    //   alert(`You are now following ${getUserById(userId).name}`);
+    // }
+  };
+
   // Render post with enhanced animations
   const renderPost = (post: Post) => {
     const user = getUserById(post.userId);
@@ -935,9 +971,28 @@ export default function CommunityHub() {
                   {post.createdAt}
                 </p>
               </div>
-              <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-                <MoreHorizontal size={16} />
-              </button>
+              <div className="relative">
+                <button
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  onClick={() =>
+                    setActiveDropdownPostId(
+                      activeDropdownPostId === post.id ? null : post.id
+                    )
+                  }
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+                {activeDropdownPostId === post.id && (
+                  <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 shadow-lg rounded-md py-1 z-10 border border-gray-200 dark:border-gray-700">
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => handleDeletePost(post.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <p className="mt-2 text-sm">{post.content}</p>
             {post.images.length > 0 && (
@@ -983,13 +1038,6 @@ export default function CommunityHub() {
               >
                 <MessageSquare size={16} />
                 <span>{post.comments}</span>
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center space-x-1"
-              >
-                <Share2 size={16} />
               </motion.button>
             </div>
 
@@ -1235,6 +1283,8 @@ export default function CommunityHub() {
 
   // Render member card
   const renderMemberCard = (user: UserType) => {
+    const [isFollowing, setIsFollowing] = useState(false);
+
     return (
       <motion.div
         key={user.id}
@@ -1258,8 +1308,20 @@ export default function CommunityHub() {
             @{user.username}
           </p>
         </div>
-        <button className="py-1.5 px-3 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
-          Follow
+        <button
+          className={`py-1.5 px-3 rounded-lg text-xs font-medium ${
+            isFollowing
+              ? "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+              : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
+          }`}
+          onClick={() => {
+            setIsFollowing(!isFollowing);
+            if (!isFollowing) {
+              handleFollowUser(user.id);
+            }
+          }}
+        >
+          {isFollowing ? "Following" : "Follow"}
         </button>
       </motion.div>
     );
@@ -1787,8 +1849,15 @@ export default function CommunityHub() {
                           @{user.username}
                         </p>
                       </div>
-                      <button className="text-xs px-3 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
-                        Follow
+                      <button
+                        className={`text-xs px-3 py-1 rounded-full ${
+                          followedUsers[user.id]
+                            ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
+                        }`}
+                        onClick={() => handleToggleFollow(user.id)}
+                      >
+                        {followedUsers[user.id] ? "Following" : "Follow"}
                       </button>
                     </div>
                   ))}
